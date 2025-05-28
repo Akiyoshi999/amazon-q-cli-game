@@ -41,6 +41,30 @@ enemy_bullet_img = create_enemy_bullet(8, 20)
 hero_bullet_img = create_hero_bullet(8, 20)
 explosion_frames = create_explosion_frames(8, 60)
 
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.frames = explosion_frames
+        self.frame_index = 0
+        self.image = self.frames[self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.frame_rate = 2  # Update every 2 game frames
+        self.counter = 0
+        
+    def update(self):
+        self.counter += 1
+        if self.counter >= self.frame_rate:
+            self.counter = 0
+            self.frame_index += 1
+            if self.frame_index >= len(self.frames):
+                self.kill()
+            else:
+                self.image = self.frames[self.frame_index]
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -258,26 +282,3 @@ while running:
 # Quit the game
 pygame.quit()
 sys.exit()
-class Explosion(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.frames = explosion_frames
-        self.frame_index = 0
-        self.image = self.frames[self.frame_index]
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-        self.frame_rate = 2  # Update every 2 game frames
-        self.counter = 0
-        
-    def update(self):
-        self.counter += 1
-        if self.counter >= self.frame_rate:
-            self.counter = 0
-            self.frame_index += 1
-            if self.frame_index >= len(self.frames):
-                self.kill()
-            else:
-                self.image = self.frames[self.frame_index]
-                center = self.rect.center
-                self.rect = self.image.get_rect()
-                self.rect.center = center
