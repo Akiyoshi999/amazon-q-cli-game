@@ -80,8 +80,7 @@ class Hero(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         # Hero ship (AI controlled)
-        self.image = pygame.Surface((40, 40))
-        self.image.fill(BLUE)
+        self.image = hero_ship_img
         self.rect = self.image.get_rect()
         self.rect.centerx = SCREEN_WIDTH // 2
         self.rect.top = 50
@@ -94,18 +93,16 @@ class Hero(pygame.sprite.Sprite):
         self.movement_change = 60  # Change direction every 60 frames
         
     def update(self):
-        # Simple AI movement
-        self.movement_timer += 1
-        if self.movement_timer >= self.movement_change:
-            self.direction = -self.direction
-            self.movement_timer = 0
-            # Occasionally move up or down
-            self.rect.y += random.choice([-20, 0, 20])
-            
-        # Keep within screen bounds
+        # Move from one end of the screen to the other
         self.rect.x += self.speed_x * self.direction
-        if self.rect.left <= 0 or self.rect.right >= SCREEN_WIDTH:
-            self.direction = -self.direction
+        
+        # Change direction when reaching screen edges
+        if self.rect.left <= 0:
+            self.direction = 1  # Move right
+            self.rect.y += random.randint(-20, 20)  # Random vertical movement
+        elif self.rect.right >= SCREEN_WIDTH:
+            self.direction = -1  # Move left
+            self.rect.y += random.randint(-20, 20)  # Random vertical movement
             
         # Keep within top half of screen
         if self.rect.top < 10:
@@ -131,11 +128,10 @@ class Hero(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         super().__init__()
-        self.image = pygame.Surface((5, 10))
         if direction == 1:  # Hero's bullet
-            self.image.fill(GREEN)
+            self.image = hero_bullet_img
         else:  # Player's bullet
-            self.image.fill(WHITE)
+            self.image = enemy_bullet_img
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
@@ -151,6 +147,7 @@ class Bullet(pygame.sprite.Sprite):
 all_sprites = pygame.sprite.Group()
 hero_bullets = pygame.sprite.Group()
 enemy_bullets = pygame.sprite.Group()
+explosions = pygame.sprite.Group()
 
 # Create game objects
 player = Player()
@@ -190,6 +187,9 @@ while running:
         hits = pygame.sprite.spritecollide(player, hero_bullets, True)
         for hit in hits:
             player.health -= 10
+            explosion = Explosion(hit.rect.centerx, hit.rect.centery)
+            all_sprites.add(explosion)
+            explosions.add(explosion)
             if player.health <= 0:
                 game_over = True
                 
@@ -197,12 +197,24 @@ while running:
         hits = pygame.sprite.spritecollide(hero, enemy_bullets, True)
         for hit in hits:
             hero.health -= 10
+            explosion = Explosion(hit.rect.centerx, hit.rect.centery)
+            all_sprites.add(explosion)
+            explosions.add(explosion)
             score += 10
             if hero.health <= 0:
                 game_over = True
     
     # Draw / render
     screen.fill(BLACK)
+    
+    # Draw stars in the background
+    for i in range(100):
+        x = random.randint(0, SCREEN_WIDTH)
+        y = random.randint(0, SCREEN_HEIGHT)
+        size = random.randint(1, 2)
+        brightness = random.randint(150, 255)
+        pygame.draw.circle(screen, (brightness, brightness, brightness), (x, y), size)
+    
     all_sprites.draw(screen)
     
     # Draw health bars
@@ -234,6 +246,7 @@ while running:
             all_sprites = pygame.sprite.Group()
             hero_bullets = pygame.sprite.Group()
             enemy_bullets = pygame.sprite.Group()
+            explosions = pygame.sprite.Group()
             player = Player()
             hero = Hero()
             all_sprites.add(player)
@@ -245,3 +258,26 @@ while running:
 # Quit the game
 pygame.quit()
 sys.exit()
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.frames = explosion_frames
+        self.frame_index = 0
+        self.image = self.frames[self.frame_index]
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.frame_rate = 2  # Update every 2 game frames
+        self.counter = 0
+        
+    def update(self):
+        self.counter += 1
+        if self.counter >= self.frame_rate:
+            self.counter = 0
+            self.frame_index += 1
+            if self.frame_index >= len(self.frames):
+                self.kill()
+            else:
+                self.image = self.frames[self.frame_index]
+                center = self.rect.center
+                self.rect = self.image.get_rect()
+                self.rect.center = center
